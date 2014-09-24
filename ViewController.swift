@@ -46,15 +46,29 @@ class ViewController: UIViewController
     
     @IBOutlet weak var lemonadeStandImageView:  UIImageView!
     @IBOutlet weak var startMixAndSaleButton:   UIButton!
+    @IBOutlet weak var startNewGameButton:      UIButton!
     
     
-    override func viewDidLoad() {
+    
+    var weatherArray: [[Int]] = [[1, 2, 3, 4], [5, 8, 10, 9], [22, 25, 27, 23]]
+    
+    var weatherToday: [Int] = [0, 0, 0, 0]
+    
+    var weatherImageView: UIImageView = UIImageView (frame: CGRectMake(20, 55, 100, 100))
+    
+    override func viewDidLoad()
+    {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        simulateWeatherToday()
+        
+        self.view.addSubview(weatherImageView)
+        
         setupInitialLabelsEtc()
     }
     
-    override func didReceiveMemoryWarning() {
+    override func didReceiveMemoryWarning()
+    {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
         
@@ -66,18 +80,19 @@ class ViewController: UIViewController
         setResourceMoneyLabel()
         setResourceLemonLabel()
         setResourceIceCubeLabel()
-        lemonPriceLabel.text  = "Lemons for $\(resourcePrice.lemonPrice)"
-        iceCubePriceLabel.text = "Ice Cubes for $\(resourcePrice.iceCubePrice)"
-        buyingLemonLabel.text = "-"
+        lemonPriceLabel.text    = "Lemons for $\(resourcePrice.lemonPrice)"
+        iceCubePriceLabel.text  = "Ice Cubes for $\(resourcePrice.iceCubePrice)"
+        buyingLemonLabel.text   = "-"
         buyingIceCubeLabel.text = "-"
-        lemonMixLabel.text = "-"
-        iceCubeMixLabel.text = "-"
+        lemonMixLabel.text      = "-"
+        iceCubeMixLabel.text    = "-"
         
         lemonadeStandImageView.hidden = true
-        startMixAndSaleButton.hidden = false
-        glassesLemonadeLabel.hidden = true
-        glassesSoldLabel.hidden = true
-        customArrivesLabel.hidden = true
+        startMixAndSaleButton.hidden  = false
+        glassesLemonadeLabel.hidden   = true
+        glassesSoldLabel.hidden       = true
+        customArrivesLabel.hidden     = true
+        startNewGameButton.hidden     = true
         
         glassesSold = 0
 
@@ -271,9 +286,14 @@ class ViewController: UIViewController
     
     @IBAction func mixTheLemonadeAndSellButtonPressed(sender: UIButton)
     {
-        if mixingIceCubes < 1 || mixingLemons < 1
+        if mixingIceCubes < 1
         {
-            showAlertWithText( message: "need ice cubes and lemons for the mix")
+            showAlertWithText( message: "need ice cubes for the mix")
+            
+        }
+        else if mixingLemons < 1
+        {
+            showAlertWithText( message: "need lemons for the mix")
             
         }
         else if mixingLemons > lemonadeResources.resourceLemons
@@ -284,8 +304,10 @@ class ViewController: UIViewController
         {
             showAlertWithText( message: "not enough ice cubes for this mix")
         }
-        else
+        else  // new sales day
         {
+            simulateWeatherToday()
+            
             // making the lemonade mix
             lemonadeResources.resourceLemons -= mixingLemons
             lemonadeResources.resourceIceCubes -= mixingIceCubes
@@ -299,8 +321,8 @@ class ViewController: UIViewController
             
             lemonadeStandImageView.hidden = false
             startMixAndSaleButton.hidden  = true
-            glassesLemonadeLabel.hidden = false
-            glassesSoldLabel.hidden = false
+            glassesLemonadeLabel.hidden   = false
+            glassesSoldLabel.hidden       = false
             
             let glassesAvailable = (mixingLemons + mixingIceCubes) * 7
             
@@ -311,16 +333,45 @@ class ViewController: UIViewController
             setGlassesSoldLabel()
             
             
-            customers = Int(arc4random_uniform(UInt32(glassesAvailable - 5))) + 5
+            var average = findAverage(weatherToday)
+            
+            //println("\(average)")
+            
+            customers   = Int(arc4random_uniform(UInt32(average)))  + Int(arc4random_uniform(UInt32(glassesAvailable)))
+            
+            
             customerNumber = 0
             /*
                 use a NSTimer to send customers to our lemonade stand.
             */
+            
             timer = NSTimer.scheduledTimerWithTimeInterval(1.5, target: self, selector: "customerThere", userInfo: nil, repeats: true)
  
             
         }
     }
+    
+    
+    @IBAction func startNewGameButtonPressed(sender: UIButton)
+    {
+        lemonadeResources.resourceMoney    = 10
+        lemonadeResources.resourceLemons   = 1
+        lemonadeResources.resourceIceCubes = 1
+        
+        buyingLemons = 0
+        buyingIceCubes = 0
+        mixingLemons = 0
+        mixingIceCubes = 0
+        
+        glassesMade = 0
+        
+        setupInitialLabelsEtc()
+        
+    }
+    
+    
+    
+    
     
     func customerThere()
     {
@@ -351,7 +402,7 @@ class ViewController: UIViewController
                 self.setResourceMoneyLabel()
                 
                 self.customArrivesLabel.text = "Customer number \(customerNumber) buys Lemon"
-                self.customArrivesLabel.textColor = UIColor.yellowColor()
+                self.customArrivesLabel.textColor = UIColor.greenColor()
                 
             }
  
@@ -370,11 +421,52 @@ class ViewController: UIViewController
             self.lemonadeStandImageView.hidden = true
             self.startMixAndSaleButton.hidden  = false
             self.customArrivesLabel.hidden = true
+            
+            // if player runs out of money, let him replay
+            if lemonadeResources.resourceMoney < 3
+            {
+                startNewGameButton.hidden = false
+            }
+            else
+            {
+                startNewGameButton.hidden = true
+            }
 
         }
         
     }
 
+    
+    func simulateWeatherToday()
+    {
+        let index = Int(arc4random_uniform((UInt32(weatherArray.count))))
+        weatherToday = weatherArray[index]
+        
+        switch index
+        {
+        case 0: weatherImageView.image = UIImage(named: "Cold")
+        case 1: weatherImageView.image = UIImage(named: "Mild")
+        case 2: weatherImageView.image = UIImage(named: "Warm")
+        default: weatherImageView.image = UIImage(named: "Warm")
+        }
+
+    }
+    
+    func findAverage(data:[Int]) -> Int
+    {
+        var sum = 0
+        
+        for x in data
+        {
+            sum += x
+        }
+        
+        var average:Double = Double(sum) / Double(data.count)
+        var rounded:Int = Int(ceil(average))
+        return rounded
+    }
+
+        
 
     func showAlertWithText (header : String = "ooops", message : String)
     {
